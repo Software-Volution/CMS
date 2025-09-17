@@ -80,8 +80,8 @@ export const fetchComplaintsByRole = async (artisanRole) => {
 
 /*const testAdminSignIn = async () => {
   try {
-    const adminEmail = "admin740@gmail.com"; // Replace with your admin email
-    const adminPassword = "admin123"; // Replace with your admin password
+    const adminEmail = "admin@gmail.com"; // Replace with your admin email
+    const adminPassword = "admin123456"; // Replace with your admin password
 
     const userCredential = await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
     console.log("Admin signed in:", userCredential.user);

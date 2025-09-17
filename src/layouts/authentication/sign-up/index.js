@@ -11,7 +11,7 @@ import MenuItem from "@mui/material/MenuItem";
 import CoverLayout from "layouts/authentication/components/CoverLayout";
 import bgImage from "assets/images/hannah-murrell-ma3ivTHdyxU-unsplash.jpg";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { setDoc, doc, collection, query, getDocs, where } from "firebase/firestore";
+import { setDoc, doc } from "firebase/firestore";
 import { auth, db } from "../firebase-config/firebase";
 
 function Cover() {
@@ -30,80 +30,59 @@ function Cover() {
     setFormData({ ...formData, [event.target.name]: event.target.value });
   };
 
-    // Function to check if the provided student data matches the verification collection
-    const checkStudentVerification = async (formData) => {
-      const verificationQuery = query(
-        collection(db, "students_verification"),
-        where("email", "==", formData.email),
-        where("name", "==", formData.name),
-        where("id", "==", formData.id),
-        where("residence", "==", formData.residence),
-        where("roomNo", "==", formData.roomNo),
-        where("phone", "==", formData.phone)
-      );
-  
-      const querySnapshot = await getDocs(verificationQuery);
-  
-      // If a match is found, return true
-      if (!querySnapshot.empty) {
-        return true;
+
+  // "admin@gmail.com", "admin123456"
+  const createAdminAccount = async () => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, "admin@gmail.com", "admin123456");
+      const user = userCredential.user;
+      console.log("Admin user created with UID:", user.uid);
+
+      await setDoc(doc(db, "admin", user.uid), {
+        name: "Admin User",
+        email: "admin@gmail.com",
+        phone: "0246582242",
+        role: "admin",
+        location: "Admin Office",
+        description: "System Administrator"
+      });
+
+      console.log("Admin document created in Firestore");
+      alert("Admin account created successfully! You can now sign in.");
+    } catch (error) {
+      console.log(error);
+      if (error.code === "auth/email-already-in-use") {
+        alert("Admin email already in use. Creating Firestore document...");
+        // If user already exists, just create the Firestore document
+        try {
+          const currentUser = auth.currentUser;
+          if (currentUser) {
+            await setDoc(doc(db, "admin", currentUser.uid), {
+              name: "Admin User",
+              email: "admin@gmail.com",
+              phone: "0246582242",
+              role: "admin",
+              location: "Admin Office",
+              description: "System Administrator"
+            });
+            alert("Admin Firestore document created successfully!");
+          }
+        } catch (docError) {
+          console.error("Error creating admin document:", docError);
+          alert("Error creating admin document: " + docError.message);
+        }
       } else {
-        return false;
+        console.error("Error creating admin account: ", error);
+        alert("Error creating admin account: " + error.message);
       }
-    };
-
-  // "ayankson72@gmail.com", "admin123"
-  // const handleSignup = async (event) => {
-  //   event.preventDefault();
-  //   try {
-  //     const userCredential = await createUserWithEmailAndPassword(auth, "ayankson72@gmail.com", "admin123");
-  //     const user = userCredential.user;
-
-  //     await setDoc(doc(db, "admin", user.uid), {
-  //       name: "Alfred Yankson",
-  //       email: "ayankson72@gmail.com",
-  //       phone: "0246582242",
-  //       role: "admin"
-  //     });
-
-  //     alert("Account created successfully!");
-
-  //     setFormData({
-  //       name: "",
-  //       id: "",
-  //       email: "",
-  //       password: "",
-  //       residence: "",
-  //       roomNo: "",
-  //       phone: "",
-  //     });
-
-  //     // Navigate to the sign-in page
-  //     navigate("/authentication/sign-in");
-  //   } catch (error) {
-  //     console.log(error);
-  //     if (error.code === "auth/email-already-in-use") {
-  //       alert("Email already in use. Please use a different email.");
-  //     } else {
-  //       console.error("Error signing up: ", error);
-  //     }
-  //   }
-  // };
+    }
+  };
 
   const handleSignup = async (event) => {
     event.preventDefault();
 
     try {
-      // Check if the student's details match the verification data
-      const isVerified = await checkStudentVerification(formData);
-
-      if (!isVerified) {
-        alert("Your details do not match our records. Please check and try again.");
-        
-        return;  // Exit the function if details don't match
-      }
-
-      // Proceed with creating the user if verified
+      // Create the user directly without verification
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 

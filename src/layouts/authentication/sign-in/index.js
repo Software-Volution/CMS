@@ -9,7 +9,7 @@ import CoverLayout from "layouts/authentication/components/CoverLayout";
 import bgImage from "assets/images/bg-sign-up-cover.jpg";
 import Checkbox from "@mui/material/Checkbox";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { getDoc, doc } from "firebase/firestore";
+import { getDoc, doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase-config/firebase";
 import { Link, useNavigate } from "react-router-dom";
 import IconButton from "@mui/material/IconButton";
@@ -37,10 +37,29 @@ function Basic() {
     setShowPassword(!showPassword);
   };
 
+  // Function to create admin document if it doesn't exist
+  const createAdminDocument = async (user) => {
+    try {
+      await setDoc(doc(db, "admin", user.uid), {
+        name: "Admin User",
+        email: "admin@gmail.com",
+        phone: "0246582242",
+        role: "admin",
+        location: "Admin Office",
+        description: "System Administrator"
+      });
+      console.log("Admin document created successfully");
+      return true;
+    } catch (error) {
+      console.error("Error creating admin document:", error);
+      return false;
+    }
+  };
+
   const handleSignIn = async (event) => {
     event.preventDefault();
 
-    if (selectedRole === "admin" && formData.email !== "ayankson72@gmail.com"){
+    if (selectedRole === "admin" && formData.email !== "admin@gmail.com"){
       return alert("You are not an admin")
     }
 
@@ -48,19 +67,38 @@ function Basic() {
       // Sign in the user
       const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
-        // Fetch the user's role from Firestore
-        const userDocRef = doc(db, selectedRole, user.uid);
-        const userDocSnap = await getDoc(userDocRef);
+      console.log("User signed in successfully:", user.uid);
+      
+      // Fetch the user's role from Firestore
+      const userDocRef = doc(db, selectedRole, user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      console.log("Document exists:", userDocSnap.exists());
+      console.log("Document data:", userDocSnap.data());
 
-        if (userDocSnap.exists()) {
-          console.log("User role:", userDocSnap.data().role);
-          if (selectedRole === "students") {
-            navigate("/layouts/student/Student");
-          } else if (selectedRole === "artisans") {
-            navigate("/authentication/artisan");
-          }else{
+      if (userDocSnap.exists()) {
+        console.log("User role:", userDocSnap.data().role);
+        if (selectedRole === "students") {
+          navigate("/layouts/student/Student");
+        } else if (selectedRole === "artisans") {
+          navigate("/authentication/artisan");
+        } else if (selectedRole === "admin") {
+          console.log("Navigating to admin dashboard...");
+          navigate("/layouts/admin/admindashboard");
+        }
+      } else {
+        console.error("No document found for user in", selectedRole, "collection");
+        if (selectedRole === "admin") {
+          console.log("Creating admin document...");
+          const created = await createAdminDocument(user);
+          if (created) {
+            console.log("Admin document created, navigating to dashboard...");
             navigate("/layouts/admin/admindashboard");
+          } else {
+            alert("Failed to create admin document. Please contact administrator.");
           }
+        } else {
+          alert("User document not found. Please contact administrator.");
+        }
       }
     } catch (error) {
       console.error("Error signing in: ", error);
